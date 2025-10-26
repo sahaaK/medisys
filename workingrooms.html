@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooms | MediCare</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js"></script>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'glass-white': 'rgba(255, 255, 255, 0.8)',
+                        'glass-border': 'rgba(255, 255, 255, 0.3)',
+                        'active-blue': '#3b82f6',
+                        'icu': '#f87171',
+                        'operation': '#60a5fa',
+                        'emergency': '#fbbf24',
+                        'general': '#34d399',
+                        'pediatric': '#a78bfa',
+                        'maternity': '#f472b6'
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px rgba(31, 38, 135, 0.15)',
+                        'hover-glass': '0 8px 32px rgba(59, 130, 246, 0.2)',
+                        'room': '0 4px 30px rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .nav-glass {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .nav-tab {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-tab.active {
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+        }
+        .nav-tab:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+        }
+        .room-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .room-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-available {
+            background-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+        }
+        .status-occupied {
+            background-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+        }
+        .status-maintenance {
+            background-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+        }
+        .filter-chip {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        .filter-chip:hover {
+            transform: scale(1.05);
+        }
+        .filter-chip.active {
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+        }
+        #vanta-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-cyan-100 min-h-screen">
+    <!-- Vanta.js Background -->
+    <div id="vanta-bg"></div>
+
+    <!-- Glass Navigation Bar -->
+    <nav class="nav-glass fixed top-6 left-1/2 transform -translate-x-1/2 z-50 max-w-4xl w-11/12 rounded-2xl shadow-glass py-2 px-4">
+        <div class="flex justify-between items-center">
+            <!-- Logo -->
+            <div class="flex items-center space-x-2">
+                <i data-feather="heart" class="text-blue-500 stroke-2 w-6 h-6"></i>
+                <span class="font-bold text-blue-600">MediCare</span>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <div class="flex space-x-2 p-1">
+                <a href="index.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="grid" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Dashboard</span>
+                </a>
+                <a href="patients.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="users" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Patients</span>
+                </a>
+                <a href="rooms.html" class="nav-tab flex items-center px-4 py-2 rounded-xl active">
+                    <i data-feather="home" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Rooms</span>
+                </a>
+                <a href="appointments.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="calendar" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Appointments</span>
+                </a>
+                <a href="staff.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="user-plus" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Staff</span>
+                </a>
+            </div>
+            
+            <!-- User Profile -->
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <i data-feather="bell" class="w-5 h-5 text-gray-700"></i>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-blue-200 overflow-hidden">
+                    <i data-feather="user" class="w-full h-full p-1.5 text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-32 px-4 max-w-7xl mx-auto pb-20">
+        <!-- Header Section -->
+        <div class="text-center mb-12" data-aos="fade-up">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Hospital Rooms</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Manage and monitor all hospital rooms in real-time with our advanced room management system
+            </p>
+        </div>
+
+        <!-- Filters and Controls -->
+        <div class="glass-panel rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="100">
+            <div class="flex flex-wrap justify-between items-center">
+                <!-- Search Bar -->
+                <div class="relative w-full md:w-auto mb-4 md:mb-0">
+                    <i data-feather="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                    <input type="text" id="searchInput" placeholder="Search rooms..." class="pl-10 pr-4 py-2 rounded-xl bg-white bg-opacity-70 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent w-full md:w-64">
+                </div>
+
+                <!-- Status Filter -->
+                <div class="flex space-x-2">
+                    <button class="filter-chip status-filter px-4 py-2 rounded-xl bg-white bg-opacity-50 active" data-status="all">
+                        <span class="status-indicator status-available"></span>
+                        <span>All Rooms</span>
+                    </button>
+                    <button class="filter-chip status-filter px-4 py-2 rounded-xl bg-white bg-opacity-30" data-status="available">
+                        <span class="status-indicator status-available"></span>
+                        <span>Available</span>
+                    </button>
+                    <button class="filter-chip status-filter px-4 py-2 rounded-xl bg-white bg-opacity-30" data-status="occupied">
+                        <span class="status-indicator status-occupied"></span>
+                        <span>Occupied</span>
+                    </button>
+                    <button class="filter-chip status-filter px-4 py-2 rounded-xl bg-white bg-opacity-30" data-status="maintenance">
+                        <span class="status-indicator status-maintenance"></span>
+                        <span>Maintenance</span>
+                    </button>
+                </div>
+
+                <!-- Add Room Button -->
+                <button id="addRoomBtn" class="flex items-center px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all mt-4 md:mt-0 ml-auto">
+                    <i data-feather="plus" class="w-4 h-4 mr-2"></i>
+                    <span>Add Room</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Room Type Filters -->
+        <div class="flex overflow-x-auto pb-4 mb-8 scrollbar-hide" data-aos="fade-up" data-aos-delay="150">
+            <div class="flex space-x-3">
+                <button class="filter-chip type-filter flex items-center px-4 py-2 rounded-xl bg-white bg-opacity-50 active" data-type="all">
+                    <i data-feather="grid" class="w-4 h-4 mr-2"></i>
+                    <span>All Types</span>
+                </button>
+                <button class="filter-chip type-filter flex items-center px-4 py-2 rounded-xl bg-icu bg-opacity-20 text-icu" data-type="ICU">
+                    <i data-feather="activity" class="w-4 h-4 mr-2"></i>
+                    <span>ICU</span>
+                </button>
+                <button class="filter-chip type-filter flex items-center px-4 py-2 rounded-xl bg-operation bg-opacity-20 text-operation" data-type="Operation">
+                    <i data-feather="scissors" class="w-4 h-4 mr-2"></i>
+                    <span>Operation</span>
+                </button>
+                <button class="filter-chip type-filter flex items-center px-4 py-2 rounded-xl bg-emergency bg-opacity-20 text-emergency" data-type="Emergency">
+                    <i data-feather="alert-triangle" class="w-4 h-4 mr-2"></i>
+                    <span>Emergency</span>
+                </button>
+                <button class="filter-chip type-filter flex items-center px-4 py-2 rounded-xl bg-general bg-opacity-20 text-general" data-type="General">
+                    <i data-feather="home" class="w-4 h-4 mr-2"></i>
+                    <span>General</span>
+                </button>
+                <button class="filter-chip type-filter flex items-center px-4 py-2 rounded-xl bg-pediatric bg-opacity-20 text-pediatric" data-type="Pediatric">
+                    <i data-feather="smile" class="w-4 h-4 mr-2"></i>
+                    <span>Pediatric</span>
+                </button>
+                <button class="filter-chip type-filter flex items-center px-4 py-2 rounded-xl bg-maternity bg-opacity-20 text-maternity" data-type="Maternity">
+                    <i data-feather="heart" class="w-4 h-4 mr-2"></i>
+                    <span>Maternity</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Rooms Grid -->
+        <div id="roomsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="200">
+            <!-- Rooms will be dynamically loaded here -->
+            <div class="loading-spinner"></div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="glass-panel rounded-2xl p-6 mt-12" data-aos="fade-up">
+            <h3 class="font-bold text-xl mb-6">Rooms Overview</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="bg-white bg-opacity-70 rounded-xl p-4 text-center">
+                    <div id="totalRooms" class="text-3xl font-bold text-blue-500 mb-2">0</div>
+                    <div class="text-sm text-gray-600">Total Rooms</div>
+                </div>
+                <div class="bg-white bg-opacity-70 rounded-xl p-4 text-center">
+                    <div id="availableRooms" class="text-3xl font-bold text-green-500 mb-2">0</div>
+                    <div class="text-sm text-gray-600">Available</div>
+                </div>
+                <div class="bg-white bg-opacity-70 rounded-xl p-4 text-center">
+                    <div id="occupiedRooms" class="text-3xl font-bold text-red-500 mb-2">0</div>
+                    <div class="text-sm text-gray-600">Occupied</div>
+                </div>
+                <div class="bg-white bg-opacity-70 rounded-xl p-4 text-center">
+                    <div id="maintenanceRooms" class="text-3xl font-bold text-yellow-500 mb-2">0</div>
+                    <div class="text-sm text-gray-600">Maintenance</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Floating Menu -->
+    <div class="md:hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 nav-glass rounded-xl py-3 px-2">
+        <div class="flex justify-around space-x-4">
+            <a href="index.html" class="nav-tab p-2 rounded-xl">
+                <i data-feather="grid" class="w-5 h-5"></i>
+            </a>
+            <a href="patients.html" class="nav-tab p-2 rounded-xl">
+                <i data-feather="users" class="w-5 h-5"></i>
+            </a>
+            <a href="rooms.html" class="nav-tab p-2 rounded-xl active">
+                <i data-feather="home" class="w-5 h-5"></i>
+            </a>
+            <a href="appointments.html" class="nav-tab p-2 rounded-xl">
+                <i data-feather="calendar" class="w-5 h-5"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- View Room Modal -->
+    <div id="viewRoomModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Room Details</h3>
+                <button id="closeViewModal" class="text-gray-500 hover:text-gray-700">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="roomDetails" class="space-y-4">
+                <!-- Room details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Room Modal -->
+    <div id="editRoomModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modalTitle" class="text-xl font-bold">Add New Room</h3>
+                <button id="closeEditModal" class="text-gray-500 hover:text-gray-700">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="roomForm" class="space-y-4">
+                <input type="hidden" id="roomId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
+                    <input type="text" id="roomName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+                    <select id="roomType" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="ICU">ICU</option>
+                        <option value="Operation">Operation</option>
+                        <option value="Emergency">Emergency</option>
+                        <option value="General">General</option>
+                        <option value="Pediatric">Pediatric</option>
+                        <option value="Maternity">Maternity</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+                    <input type="text" id="roomFloor" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                    <input type="text" id="roomCapacity" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Equipment Level</label>
+                    <select id="roomEquipment" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Basic">Basic</option>
+                        <option value="Standard">Standard</option>
+                        <option value="Advanced">Advanced</option>
+                        <option value="Full">Full</option>
+                        <option value="Specialized">Specialized</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="roomStatus" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="available">Available</option>
+                        <option value="occupied">Occupied</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="roomDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="cancelRoom" class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Background Elements -->
+    <div class="fixed top-0 right-0 w-64 h-64 rounded-full bg-blue-100 blur-3xl opacity-40 -z-10"></div>
+    <div class="fixed bottom-0 left-0 w-72 h-72 rounded-full bg-cyan-100 blur-3xl opacity-30 -z-10"></div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmNZwH7Tj_cKTcOk3WbFvszNaZcMESkHM",
+            authDomain: "medisys-ac215.firebaseapp.com",
+            projectId: "medisys-ac215",
+            storageBucket: "medisys-ac215.firebasestorage.app",
+            messagingSenderId: "878009234803",
+            appId: "1:878009234803:web:ba2cf74f1eee0d39e78106",
+            measurementId: "G-DV0YQQ9FF1"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Room images mapping
+        const roomImages = {
+            'ICU': 'http://static.photos/medical/640x360/1',
+            'Operation': 'http://static.photos/medical/640x360/2',
+            'Emergency': 'http://static.photos/medical/640x360/4',
+            'General': 'http://static.photos/medical/640x360/3',
+            'Pediatric': 'http://static.photos/medical/640x360/5',
+            'Maternity': 'http://static.photos/medical/640x360/6'
+        };
+
+        // Room icons mapping
+        const roomIcons = {
+            'ICU': 'activity',
+            'Operation': 'scissors',
+            'Emergency': 'alert-triangle',
+            'General': 'home',
+            'Pediatric': 'smile',
+            'Maternity': 'heart'
+        };
+
+        // Room icon colors mapping
+        const roomIconColors = {
+            'ICU': 'text-red-500 bg-red-100',
+            'Operation': 'text-blue-500 bg-blue-100',
+            'Emergency': 'text-yellow-500 bg-yellow-100',
+            'General': 'text-green-500 bg-green-100',
+            'Pediatric': 'text-purple-500 bg-purple-100',
+            'Maternity': 'text-pink-500 bg-pink-100'
+        };
+
+        // Current filters
+        let currentStatusFilter = 'all';
+        let currentTypeFilter = 'all';
+        let currentSearchTerm = '';
+
+        // Initialize libraries
+        document.addEventListener('DOMContentLoaded', () => {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-out-back'
+            });
+            feather.replace();
+            
+            // Vanta.js background
+            VANTA.GLOBE({
+                el: "#vanta-bg",
+                mouseControls: true,
+                touchControls: true,
+                gyroControls: false,
+                minHeight: 200.00,
+                minWidth: 200.00,
+                scale: 1.00,
+                scaleMobile: 1.00,
+                color: 0x3b82f6,
+                backgroundColor: 0xf8fafc,
+                size: 0.8
+            });
+
+            // Load rooms from Firestore
+            loadRooms();
+
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        // Setup all event listeners
+        function setupEventListeners() {
+            // Status filter
+            document.querySelectorAll('.status-filter').forEach(button => {
+                button.addEventListener('click', () => {
+                    currentStatusFilter = button.dataset.status;
+                    document.querySelectorAll('.status-filter').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    filterRooms();
+                });
+            });
+
+            // Type filter
+            document.querySelectorAll('.type-filter').forEach(button => {
+                button.addEventListener('click', () => {
+                    currentTypeFilter = button.dataset.type;
+                    document.querySelectorAll('.type-filter').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    filterRooms();
+                });
+            });
+
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                currentSearchTerm = e.target.value.toLowerCase();
+                filterRooms();
+            });
+
+            // Add room button
+            document.getElementById('addRoomBtn').addEventListener('click', () => {
+                openEditModal();
+            });
+
+            // Modal close buttons
+            document.getElementById('closeViewModal').addEventListener('click', closeViewModal);
+            document.getElementById('closeEditModal').addEventListener('click', closeEditModal);
+            document.getElementById('cancelRoom').addEventListener('click', closeEditModal);
+
+            // Room form submission
+            document.getElementById('roomForm').addEventListener('submit', handleRoomSubmit);
+        }
+
+        // Load rooms from Firestore
+        function loadRooms() {
+            db.collection('rooms').onSnapshot((snapshot) => {
+                const rooms = [];
+                snapshot.forEach((doc) => {
+                    rooms.push({ id: doc.id, ...doc.data() });
+                });
+                renderRooms(rooms);
+                updateStats(rooms);
+            }, (error) => {
+                console.error('Error loading rooms:', error);
+                document.getElementById('roomsContainer').innerHTML = `
+                    <div class="col-span-3 text-center py-8 text-red-500">
+                        <i data-feather="alert-circle" class="w-12 h-12 mx-auto mb-4"></i>
+                        <p>Failed to load rooms. Please try again.</p>
+                    </div>
+                `;
+                feather.replace();
+            });
+        }
+
+        // Render rooms to the DOM
+        function renderRooms(rooms) {
+            const roomsContainer = document.getElementById('roomsContainer');
+            
+            if (rooms.length === 0) {
+                roomsContainer.innerHTML = `
+                    <div class="col-span-3 text-center py-12">
+                        <i data-feather="home" class="w-16 h-16 mx-auto mb-4 text-gray-400"></i>
+                        <p class="text-gray-500">No rooms found. Add your first room to get started.</p>
+                    </div>
+                `;
+                feather.replace();
+                return;
+            }
+
+            roomsContainer.innerHTML = rooms.map(room => `
+                <div class="room-card rounded-2xl p-6 overflow-hidden relative" data-aos="zoom-in" data-room-id="${room.id}">
+                    <div class="absolute top-4 right-4">
+                        <span class="status-indicator status-${room.status}"></span>
+                    </div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-xl ${roomIconColors[room.type]} flex items-center justify-center mr-4">
+                            <i data-feather="${roomIcons[room.type]}" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg">${room.name}</h3>
+                            <p class="text-sm text-gray-500">${room.type}</p>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <img src="${roomImages[room.type]}" alt="${room.type} Room" class="w-full h-40 object-cover rounded-xl">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Floor</p>
+                            <p class="font-medium">${room.floor}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Capacity</p>
+                            <p class="font-medium">${room.capacity}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Equipment</p>
+                            <p class="font-medium">${room.equipment}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Status</p>
+                            <p class="font-medium ${getStatusColor(room.status)}">${capitalizeFirst(room.status)}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="view-room-btn px-4 py-2 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-100 transition" data-room-id="${room.id}">
+                            <i data-feather="eye" class="w-4 h-4 mr-1 inline"></i>
+                            View
+                        </button>
+                        <button class="edit-room-btn px-4 py-2 bg-green-50 text-green-500 rounded-xl hover:bg-green-100 transition" data-room-id="${room.id}">
+                            <i data-feather="edit" class="w-4 h-4 mr-1 inline"></i>
+                            Edit
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add event listeners to view and edit buttons
+            document.querySelectorAll('.view-room-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const roomId = e.currentTarget.dataset.roomId;
+                    const room = rooms.find(r => r.id === roomId);
+                    openViewModal(room);
+                });
+            });
+
+            document.querySelectorAll('.edit-room-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const roomId = e.currentTarget.dataset.roomId;
+                    const room = rooms.find(r => r.id === roomId);
+                    openEditModal(room);
+                });
+            });
+
+            feather.replace();
+        }
+
+        // Filter rooms based on current filters
+        function filterRooms() {
+            const roomCards = document.querySelectorAll('.room-card');
+            
+            roomCards.forEach(card => {
+                const roomId = card.dataset.roomId;
+                const roomName = card.querySelector('h3').textContent.toLowerCase();
+                const roomType = card.querySelector('p.text-gray-500').textContent;
+                const roomStatus = card.querySelector('.font-medium').textContent.toLowerCase();
+                
+                const matchesStatus = currentStatusFilter === 'all' || roomStatus === currentStatusFilter;
+                const matchesType = currentTypeFilter === 'all' || roomType === currentTypeFilter;
+                const matchesSearch = roomName.includes(currentSearchTerm) || roomType.toLowerCase().includes(currentSearchTerm);
+                
+                if (matchesStatus && matchesType && matchesSearch) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Update statistics
+        function updateStats(rooms) {
+            const total = rooms.length;
+            const available = rooms.filter(r => r.status === 'available').length;
+            const occupied = rooms.filter(r => r.status === 'occupied').length;
+            const maintenance = rooms.filter(r => r.status === 'maintenance').length;
+            
+            document.getElementById('totalRooms').textContent = total;
+            document.getElementById('availableRooms').textContent = available;
+            document.getElementById('occupiedRooms').textContent = occupied;
+            document.getElementById('maintenanceRooms').textContent = maintenance;
+        }
+
+        // Open view modal
+        function openViewModal(room) {
+            const modal = document.getElementById('viewRoomModal');
+            const detailsContainer = document.getElementById('roomDetails');
+            
+            detailsContainer.innerHTML = `
+                <div class="flex items-center mb-6">
+                    <div class="w-16 h-16 rounded-xl ${roomIconColors[room.type]} flex items-center justify-center mr-4">
+                        <i data-feather="${roomIcons[room.type]}" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-2xl">${room.name}</h4>
+                        <p class="text-gray-500">${room.type}</p>
+                    </div>
+                </div>
+                <img src="${roomImages[room.type]}" alt="${room.type} Room" class="w-full h-48 object-cover rounded-xl mb-6">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">Floor</p>
+                        <p class="font-medium">${room.floor}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">Capacity</p>
+                        <p class="font-medium">${room.capacity}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">Equipment Level</p>
+                        <p class="font-medium">${room.equipment}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-500">Status</p>
+                        <p class="font-medium ${getStatusColor(room.status)}">${capitalizeFirst(room.status)}</p>
+                    </div>
+                </div>
+                ${room.description ? `
+                <div>
+                    <p class="text-sm text-gray-500 mb-2">Description</p>
+                    <p class="text-gray-700">${room.description}</p>
+                </div>
+                ` : ''}
+            `;
+            
+            modal.classList.add('active');
+            feather.replace();
+        }
+
+        // Close view modal
+        function closeViewModal() {
+            document.getElementById('viewRoomModal').classList.remove('active');
+        }
+
+        // Open edit modal
+        function openEditModal(room = null) {
+            const modal = document.getElementById('editRoomModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const form = document.getElementById('roomForm');
+            
+            if (room) {
+                // Editing existing room
+                modalTitle.textContent = 'Edit Room';
+                document.getElementById('roomId').value = room.id;
+                document.getElementById('roomName').value = room.name;
+                document.getElementById('roomType').value = room.type;
+                document.getElementById('roomFloor').value = room.floor;
+                document.getElementById('roomCapacity').value = room.capacity;
+                document.getElementById('roomEquipment').value = room.equipment;
+                document.getElementById('roomStatus').value = room.status;
+                document.getElementById('roomDescription').value = room.description || '';
+            } else {
+                // Adding new room
+                modalTitle.textContent = 'Add New Room';
+                form.reset();
+                document.getElementById('roomId').value = '';
+            }
+            
+            modal.classList.add('active');
+        }
+
+        // Close edit modal
+        function closeEditModal() {
+            document.getElementById('editRoomModal').classList.remove('active');
+        }
+
+        // Handle room form submission
+        function handleRoomSubmit(e) {
+            e.preventDefault();
+            
+            const roomId = document.getElementById('roomId').value;
+            const roomData = {
+                name: document.getElementById('roomName').value,
+                type: document.getElementById('roomType').value,
+                floor: document.getElementById('roomFloor').value,
+                capacity: document.getElementById('roomCapacity').value,
+                equipment: document.getElementById('roomEquipment').value,
+                status: document.getElementById('roomStatus').value,
+                description: document.getElementById('roomDescription').value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            if (roomId) {
+                // Update existing room
+                db.collection('rooms').doc(roomId).update(roomData)
+                    .then(() => {
+                        closeEditModal();
+                        showToast('Room updated successfully!', 'success');
+                    })
+                    .catch((error) => {
+                        console.error('Error updating room:', error);
+                        showToast('Failed to update room. Please try again.', 'error');
+                    });
+            } else {
+                // Add new room
+                roomData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                db.collection('rooms').add(roomData)
+                    .then(() => {
+                        closeEditModal();
+                        showToast('Room added successfully!', 'success');
+                    })
+                    .catch((error) => {
+                        console.error('Error adding room:', error);
+                        showToast('Failed to add room. Please try again.', 'error');
+                    });
+            }
+        }
+
+        // Helper function to get status color
+        function getStatusColor(status) {
+            switch(status) {
+                case 'available': return 'text-green-500';
+                case 'occupied': return 'text-red-500';
+                case 'maintenance': return 'text-yellow-500';
+                default: return 'text-gray-500';
+            }
+        }
+
+        // Helper function to capitalize first letter
+        function capitalizeFirst(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `fixed top-20 right-4 px-4 py-2 rounded-lg shadow-lg text-white ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            } z-50 transform transition-transform duration-300 translate-x-full`;
+            toast.textContent = message;
+            
+            // Add to DOM
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 10);
+            
+            // Animate out and remove
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+<script src="https://huggingface.co/deepsite/deepsite-badge.js"></script>
+</body>
+</html>
