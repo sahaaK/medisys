@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments | MediCare</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+     <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'glass-white': 'rgba(255, 255, 255, 0.8)',
+                        'glass-border': 'rgba(255, 255, 255, 0.3)',
+                        'active-blue': '#3b82f6'
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px rgba(31, 38, 135, 0.15)',
+                        'hover-glass': '0 8px 32px rgba(59, 130, 246, 0.2)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .nav-glass {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .nav-tab {
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .nav-tab.active {
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+        }
+        .nav-tab:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-cyan-50 to-blue-100 min-h-screen">
+    <!-- Glass Navigation Bar -->
+    <nav class="nav-glass fixed top-6 left-1/2 transform -translate-x-1/2 z-50 max-w-4xl w-11/12 rounded-2xl shadow-glass py-2 px-4">
+        <div class="flex justify-between items-center">
+            <!-- Logo -->
+            <div class="flex items-center space-x-2">
+                <i data-feather="heart" class="text-blue-500 stroke-2 w-6 h-6"></i>
+                <span class="font-bold text-blue-600">MediCare</span>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <div class="flex space-x-2 p-1">
+                <a href="index.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="grid" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Dashboard</span>
+                </a>
+                <a href="patients.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="users" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Patients</span>
+                </a>
+                <a href="rooms.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="home" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Rooms</span>
+                </a>
+                <a href="appointments.html" class="nav-tab flex items-center px-4 py-2 rounded-xl active">
+                    <i data-feather="calendar" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Appointments</span>
+                </a>
+                <a href="staff.html" class="nav-tab flex items-center px-4 py-2 rounded-xl">
+                    <i data-feather="user-plus" class="w-5 h-5"></i>
+                    <span class="ml-2 hidden md:inline">Staff</span>
+                </a>
+            </div>
+            
+            <!-- User Profile -->
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <i data-feather="bell" class="w-5 h-5 text-gray-700"></i>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-blue-200 overflow-hidden">
+                    <i data-feather="user" class="w-full h-full p-1.5 text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-32 px-4 max-w-6xl mx-auto pb-20">
+        <div class="text-center py-16" data-aos="fade-up">
+            <h2 class="text-3xl font-bold text-gray-800">Appointments Management</h2>
+            <p class="mt-4 text-gray-600 max-w-lg mx-auto">
+                Content for appointments will be developed here.
+            </p>
+            <div class="mt-8 flex justify-center">
+                <div class="bg-blue-50 rounded-2xl p-6 shadow-inner">
+                    <div class="animate-spin text-blue-500">
+                        <i data-feather="clock" class="w-12 h-12"></i>
+                    </div>
+                </div>
+            </div>
+            <p class="mt-6 text-sm text-gray-500 italic">
+                This view is a placeholder for future implementation
+            </p>
+        </div>
+    </main>
+
+    <!-- Mobile Floating Menu -->
+    <div class="md:hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 nav-glass rounded-xl py-3 px-2">
+        <div class="flex justify-around space-x-4">
+            <a href="index.html" class="nav-tab p-2 rounded-xl">
+                <i data-feather="grid" class="w-5 h-5"></i>
+            </a>
+            <a href="patients.html" class="nav-tab p-2 rounded-xl">
+                <i data-feather="users" class="w-5 h-5"></i>
+            </a>
+            <a href="rooms.html" class="nav-tab p-2 rounded-xl">
+                <i data-feather="home" class="w-5 h-5"></i>
+            </a>
+            <a href="appointments.html" class="nav-tab p-2 rounded-xl active">
+                <i data-feather="calendar" class="w-5 h-5"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Background Elements -->
+    <div class="fixed top-0 right-0 w-64 h-64 rounded-full bg-blue-100 blur-3xl opacity-40 -z-10"></div>
+    <div class="fixed bottom-0 left-0 w-72 h-72 rounded-full bg-cyan-100 blur-3xl opacity-30 -z-10"></div>
+
+    <script>
+        // Initialize libraries
+        document.addEventListener('DOMContentLoaded', () => {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-out-back'
+            });
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
